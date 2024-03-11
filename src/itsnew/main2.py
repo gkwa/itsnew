@@ -1,15 +1,35 @@
+import json
 import pathlib
 
-import jinja2
 
+def do_work(data_path):
+    if not pathlib.Path(data_path).exists():
+        with open(data_path, "w") as file:
+            json.dump([], file)
 
-def get_template(template_name):
-    TEMPLATES_PATH = pathlib.Path(__file__).resolve().parent / "templates"
-    loader = jinja2.FileSystemLoader(searchpath=TEMPLATES_PATH)
-    env = jinja2.Environment(loader=loader)
-    return env.get_template(template_name)
+    with open(data_path, "r") as file:
+        data = json.load(file)
 
+    checked_targets = set()
 
-def render_template(template_name, data=None):
-    template = get_template(template_name)
-    return template.render(data=data)
+    for item in data:
+        path_directory = pathlib.Path(item["path"]).parent
+
+        for link in item["links"]:
+            target = link["target"]
+
+            absolute_path = path_directory / target
+
+            link["file_exists"] = False
+            checked_targets.add(target)
+
+            if absolute_path.exists():
+                link["file_exists"] = True
+
+            if absolute_path.with_suffix(".md").exists():
+                link["file_exists"] = True
+
+    with open(data_path, "w") as file:
+        json.dump(data, file, indent=2)
+
+    return json.dumps(data, indent=2)
